@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="referrer" content="no-referrer">
-    <title>SoundWave Player</title>
+    <title>SoundWave Memory</title>
     <style>
         body {
             background-color: #121212;
@@ -24,44 +23,42 @@
             width: 220px;
             height: 220px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #8E44AD, #3498db);
-            box-shadow: 0 0 30px rgba(142, 68, 173, 0.4);
+            background: linear-gradient(135deg, #1DB954, #105c2a);
+            box-shadow: 0 0 30px rgba(29, 185, 84, 0.4);
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 30px;
             position: relative;
-            transition: all 0.3s ease;
         }
 
         .playing { animation: pulse 1.5s infinite; }
         .icono { font-size: 80px; z-index: 2; }
 
         h1 { font-size: 22px; margin-bottom: 5px; font-weight: 700; }
-        p { color: #b3b3b3; font-size: 14px; margin-top: 0; margin-bottom: 30px; }
-
-        audio {
-            width: 100%;
-            max-width: 350px;
+        
+        /* Botón de Play Gigante (Mejor que el control nativo) */
+        #btn-play {
+            padding: 15px 40px;
+            background-color: #1DB954;
+            color: white;
+            border: none;
             border-radius: 50px;
-            outline: none;
-        }
-
-        #error-log {
-            color: #ff5555;
-            font-size: 12px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
             margin-top: 20px;
-            max-width: 300px;
-            display: none;
-            background: rgba(255,0,0,0.1);
-            padding: 10px;
-            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
         }
+        #btn-play:active { transform: scale(0.95); }
+
+        audio { display: none; } /* Lo ocultamos para usar nuestro botón bonito */
 
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(142, 68, 173, 0.7); }
-            70% { box-shadow: 0 0 0 20px rgba(142, 68, 173, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(142, 68, 173, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.7); }
+            70% { box-shadow: 0 0 0 30px rgba(29, 185, 84, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(29, 185, 84, 0); }
         }
     </style>
 </head>
@@ -71,77 +68,60 @@
         <div class="icono">🎵</div>
     </div>
 
-    <h1 id="titulo">Cargando...</h1>
-    <p>SoundWave Memory</p>
-
-    <audio id="player" controls controlsList="nodownload">
-        Tu navegador no soporta audio.
-    </audio>
+    <h1 id="titulo">Cargando recuerdo...</h1>
     
-    <div id="error-log"></div>
+    <audio id="player"></audio>
+
+    <button id="btn-play" onclick="togglePlay()">▶ REPRODUCIR</button>
 
     <script>
         const player = document.getElementById('player');
         const visual = document.getElementById('visual');
         const titulo = document.getElementById('titulo');
-        const errorLog = document.getElementById('error-log');
+        const btn = document.getElementById('btn-play');
 
         const params = new URLSearchParams(window.location.search);
-        const driveLink = params.get('track');
+        const trackLink = params.get('track');
         const mensaje = params.get('msg');
-
-        // Función para mostrar errores en pantalla
-        function mostrarError(txt) {
-            errorLog.style.display = 'block';
-            errorLog.innerText = "Error: " + txt;
-            titulo.innerText = "⚠️ No se pudo reproducir";
-        }
 
         if (mensaje) {
             titulo.innerText = decodeURIComponent(mensaje);
             document.title = decodeURIComponent(mensaje);
-        } else {
-            titulo.innerText = "Mensaje de Audio";
         }
 
-        if (driveLink) {
-            // Regex mejorado para capturar cualquier formato de ID de Drive
-            const regex = /[-\w]{25,}/;
-            const match = driveLink.match(regex);
+        if (trackLink) {
+            // Aquí aceptamos el link directo tal cual viene
+            player.src = trackLink;
+            
+            // Eventos para la animación
+            player.onplay = () => {
+                visual.classList.add('playing');
+                btn.innerText = "⏸ PAUSAR";
+                btn.style.backgroundColor = "#e67e22"; // Naranja al reproducir
+            };
+            
+            player.onpause = () => {
+                visual.classList.remove('playing');
+                btn.innerText = "▶ REPRODUCIR";
+                btn.style.backgroundColor = "#1DB954"; // Verde al pausar
+            };
 
-            if (match) {
-                const fileId = match[0];
-                console.log("ID Detectado:", fileId);
-                
-                // TRUCO 2: URL de streaming directa con confirmación
-                // A veces Google pide confirmación, esto ayuda a saltarla
-                const streamUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-                
-                player.src = streamUrl;
-                player.load(); // Forzar carga
+            player.onended = () => {
+                visual.classList.remove('playing');
+                btn.innerText = "↺ REPETIR";
+            };
 
-                // Eventos de depuración
-                player.onplay = () => visual.classList.add('playing');
-                player.onpause = () => visual.classList.remove('playing');
-                
-                player.onerror = (e) => {
-                    const error = player.error;
-                    let errorMsg = "Desconocido";
-                    if (error.code === 1) errorMsg = "Abortado por usuario";
-                    if (error.code === 2) errorMsg = "Error de Red (Posible bloqueo de Drive)";
-                    if (error.code === 3) errorMsg = "Error de Decodificación";
-                    if (error.code === 4) errorMsg = "Formato no soportado (SRC no accesible)";
-                    
-                    console.error("Error de audio:", error);
-                    mostrarError(errorMsg + ". Asegúrate de que el archivo en Drive sea 'Público' (Cualquier persona con el enlace).");
-                };
-
-            } else {
-                mostrarError("Link de Drive no válido.");
-            }
         } else {
-            titulo.innerText = "Esperando Audio...";
-            player.style.display = 'none';
+            titulo.innerText = "Error: Falta el audio";
+            btn.style.display = 'none';
+        }
+
+        function togglePlay() {
+            if (player.paused) {
+                player.play();
+            } else {
+                player.pause();
+            }
         }
     </script>
 </body>
