@@ -20,40 +20,44 @@
         }
 
         .disco-container {
-            width: 220px;
-            height: 220px;
+            width: 240px;
+            height: 240px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #1DB954, #105c2a);
-            box-shadow: 0 0 30px rgba(29, 185, 84, 0.4);
+            background: linear-gradient(135deg, #1DB954, #191414);
+            box-shadow: 0 0 40px rgba(29, 185, 84, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
             position: relative;
         }
 
         .playing { animation: pulse 1.5s infinite; }
         .icono { font-size: 80px; z-index: 2; }
 
-        h1 { font-size: 22px; margin-bottom: 5px; font-weight: 700; }
+        h1 { font-size: 24px; margin-bottom: 10px; font-weight: 700; letter-spacing: 0.5px; }
         
-        /* Botón de Play Gigante (Mejor que el control nativo) */
+        /* Botón Play Estilo Spotify */
         #btn-play {
-            padding: 15px 40px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
             background-color: #1DB954;
             color: white;
             border: none;
-            border-radius: 50px;
-            font-size: 20px;
-            font-weight: bold;
+            font-size: 30px;
             cursor: pointer;
-            margin-top: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            transition: transform 0.2s, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-left: 5px; /* Ajuste visual para el triángulo */
         }
+        #btn-play:hover { transform: scale(1.1); background-color: #1ed760; }
         #btn-play:active { transform: scale(0.95); }
 
-        audio { display: none; } /* Lo ocultamos para usar nuestro botón bonito */
+        audio { display: none; } 
 
         @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.7); }
@@ -68,11 +72,11 @@
         <div class="icono">🎵</div>
     </div>
 
-    <h1 id="titulo">Cargando recuerdo...</h1>
+    <h1 id="titulo">Cargando...</h1>
     
     <audio id="player"></audio>
 
-    <button id="btn-play" onclick="togglePlay()">▶ REPRODUCIR</button>
+    <button id="btn-play" onclick="togglePlay()">▶</button>
 
     <script>
         const player = document.getElementById('player');
@@ -80,48 +84,55 @@
         const titulo = document.getElementById('titulo');
         const btn = document.getElementById('btn-play');
 
+        // Leer parámetros de la URL
         const params = new URLSearchParams(window.location.search);
-        const trackLink = params.get('track');
-        const mensaje = params.get('msg');
+        const audioFile = params.get('track'); // Nombre del archivo
+        const mensaje = params.get('msg');     // Título
 
+        // 1. Poner Título
         if (mensaje) {
             titulo.innerText = decodeURIComponent(mensaje);
             document.title = decodeURIComponent(mensaje);
+        } else {
+            titulo.innerText = "Mensaje de Voz";
         }
 
-        if (trackLink) {
-            // Aquí aceptamos el link directo tal cual viene
-            player.src = trackLink;
+        // 2. Cargar Audio
+        if (audioFile) {
+            // Aquí está la magia: asume que el archivo está en la misma carpeta
+            player.src = audioFile;
             
-            // Eventos para la animación
+            // Eventos
             player.onplay = () => {
                 visual.classList.add('playing');
-                btn.innerText = "⏸ PAUSAR";
-                btn.style.backgroundColor = "#e67e22"; // Naranja al reproducir
+                btn.innerHTML = "⏸"; // Icono Pausa
+                btn.style.paddingLeft = "0";
             };
             
             player.onpause = () => {
                 visual.classList.remove('playing');
-                btn.innerText = "▶ REPRODUCIR";
-                btn.style.backgroundColor = "#1DB954"; // Verde al pausar
+                btn.innerHTML = "▶"; // Icono Play
+                btn.style.paddingLeft = "5px";
             };
 
             player.onended = () => {
                 visual.classList.remove('playing');
-                btn.innerText = "↺ REPETIR";
+                btn.innerHTML = "↺"; // Icono Repetir
+                btn.style.paddingLeft = "0";
+            };
+            
+            player.onerror = () => {
+                titulo.innerText = "Error: Archivo no encontrado";
+                alert("No encuentro el archivo: " + audioFile + "\n\nAsegúrate de haberlo subido al repositorio de GitHub.");
             };
 
         } else {
-            titulo.innerText = "Error: Falta el audio";
+            titulo.innerText = "Escanea el QR para escuchar";
             btn.style.display = 'none';
         }
 
         function togglePlay() {
-            if (player.paused) {
-                player.play();
-            } else {
-                player.pause();
-            }
+            if (player.paused) { player.play(); } else { player.pause(); }
         }
     </script>
 </body>
