@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -18,78 +19,104 @@
             padding: 20px;
             text-align: center;
         }
+        
+        /* CÍRCULO CON ONDA ANIMADA */
         .disco-container {
-            width: 250px;
-            height: 250px;
+            width: 220px;
+            height: 220px;
             border-radius: 50%;
-            background: linear-gradient(45deg, #1DB954, #1ed760);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: linear-gradient(135deg, #1DB954, #105c2a);
+            box-shadow: 0 0 30px rgba(29, 185, 84, 0.4);
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 40px;
-            animation: pulse 2s infinite;
+            position: relative;
         }
-        .icono { font-size: 80px; }
-        h1 { font-size: 24px; margin-bottom: 10px; font-weight: 600; }
-        p { color: #b3b3b3; font-size: 14px; margin-top: 0; }
         
+        /* Animación de pulso que se activa al reproducir */
+        .playing {
+            animation: pulse 1.5s infinite;
+        }
+
+        .icono { font-size: 80px; z-index: 2; }
+
+        h1 { font-size: 24px; margin-bottom: 5px; font-weight: 700; letter-spacing: 0.5px; }
+        p { color: #b3b3b3; font-size: 14px; margin-top: 0; margin-bottom: 30px;}
+
+        /* REPRODUCTOR PERSONALIZADO */
         audio {
             width: 100%;
-            max-width: 400px;
-            margin-top: 20px;
-            border-radius: 30px;
+            max-width: 350px;
+            border-radius: 50px;
+            outline: none;
         }
 
         @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(29, 185, 84, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(29, 185, 84, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(29, 185, 84, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(29, 185, 84, 0); }
         }
     </style>
 </head>
 <body>
 
-    <div class="disco-container">
+    <div class="disco-container" id="visual">
         <div class="icono">🎵</div>
     </div>
 
     <h1 id="titulo">Cargando recuerdo...</h1>
     <p>SoundWave Art</p>
 
-    <audio id="player" controls playsinline controlsList="nodownload">
+    <audio id="player" controls controlsList="nodownload">
         Tu navegador no soporta audio.
     </audio>
 
     <script>
-        // --- LÓGICA DEL REPRODUCTOR ---
+        // --- LÓGICA DE CONVERSIÓN INTELIGENTE ---
         const params = new URLSearchParams(window.location.search);
         const driveLink = params.get('track');
         const mensaje = params.get('msg');
 
-        // 1. Mostrar el Título
+        // 1. Mostrar Título
         if (mensaje) {
             document.getElementById('titulo').innerText = decodeURIComponent(mensaje);
         } else {
             document.getElementById('titulo').innerText = "Mensaje de Voz";
         }
 
-        // 2. Convertir Link de Drive a Streaming Directo
+        // 2. Procesar el Audio
         if (driveLink) {
-            // Extraer ID del archivo
+            // Extraer el ID único del archivo de Google Drive
             let fileId = "";
-            const match1 = driveLink.match(/\/d\/(.+?)\//);
-            const match2 = driveLink.match(/id=([a-zA-Z0-9_-]+)/);
+            const patrones = [
+                /\/d\/(.+?)\//,       // Detecta ID entre /d/ y /
+                /id=([a-zA-Z0-9_-]+)/ // Detecta ID después de id=
+            ];
 
-            if (match1) { fileId = match1[1]; }
-            else if (match2) { fileId = match2[1]; }
+            for (let patron of patrones) {
+                const match = driveLink.match(patron);
+                if (match) {
+                    fileId = match[1];
+                    break;
+                }
+            }
 
             if (fileId) {
-                // Link directo de Google para <audio>
-                const directUrl = `https://docs.google.com/uc?export=download&id=${fileId}`;
-                document.getElementById('player').src = directUrl;
+                // TRUCO: Usamos el link de "export=download" para transmisión directa
+                // Esto convierte la página web en un archivo de audio real
+                const streamUrl = `https://docs.google.com/uc?export=download&id=${fileId}`;
+                
+                const player = document.getElementById('player');
+                player.src = streamUrl;
+                
+                // Activar animación solo cuando suena
+                player.onplay = () => document.getElementById('visual').classList.add('playing');
+                player.onpause = () => document.getElementById('visual').classList.remove('playing');
+                
+                console.log("Reproduciendo ID:", fileId);
             } else {
-                document.getElementById('titulo').innerText = "Error: Link inválido";
+                document.getElementById('titulo').innerText = "Error: Link no válido";
             }
         }
     </script>
