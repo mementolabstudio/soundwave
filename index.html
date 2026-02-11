@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundWave Memory</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: white;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        .disco {
+            width: 250px;
+            height: 250px;
+            background: linear-gradient(135deg, #1DB954, #105c2a);
+            border-radius: 50%;
+            box-shadow: 0 0 40px rgba(29, 185, 84, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 40px;
+            animation: girar 10s linear infinite;
+            animation-play-state: paused; /* Se mueve solo al dar play */
+        }
+        .icono { font-size: 80px; }
+        h1 { font-weight: 300; letter-spacing: 1px; margin-bottom: 10px; }
+        p { color: #888; font-size: 14px; }
+        
+        /* Reproductor bonito */
+        audio {
+            width: 80%;
+            max-width: 400px;
+            margin-top: 20px;
+            filter: invert(1); /* Hace que el control se vea blanco en lugar de gris */
+        }
+
+        @keyframes girar {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="disco" id="disco-visual">
+        <div class="icono">🎵</div>
+    </div>
+
+    <h1 id="titulo-cancion">Cargando recuerdo...</h1>
+    <p>SoundWave Art</p>
+
+    <audio id="player" controls controlsList="nodownload">
+        Tu navegador no soporta audio.
+    </audio>
+
+    <script>
+        // --- CEREBRO DE LA PÁGINA ---
+        const params = new URLSearchParams(window.location.search);
+        
+        // 1. Leemos las instrucciones del QR (Link y Título)
+        const driveLink = params.get('track'); 
+        const tituloUsuario = params.get('msg');
+
+        // 2. Función para transformar el link de Drive en Audio Directo
+        function convertirLinkDrive(url) {
+            if (!url) return "";
+            // Buscamos el ID del archivo entre todo el texto del link
+            let id = "";
+            const match = url.match(/\/d\/(.+?)\//);
+            if (match) {
+                id = match[1];
+            } else {
+                const match2 = url.match(/id=([a-zA-Z0-9_-]+)/);
+                if (match2) id = match2[1];
+            }
+            // Devolvemos el link "mágico" que Google usa para descarga directa
+            return `https://docs.google.com/uc?export=download&id=${id}`;
+        }
+
+        // 3. Ponemos la información en la pantalla
+        if (tituloUsuario) {
+            document.getElementById('titulo-cancion').innerText = decodeURIComponent(tituloUsuario);
+        } else {
+            document.getElementById('titulo-cancion').innerText = "Mensaje de Voz";
+        }
+
+        if (driveLink) {
+            const audioDirecto = convertirLinkDrive(driveLink);
+            const player = document.getElementById('player');
+            player.src = audioDirecto;
+            
+            // Efecto visual: que el disco gire cuando den Play
+            player.onplay = () => document.getElementById('disco-visual').style.animationPlayState = "running";
+            player.onpause = () => document.getElementById('disco-visual').style.animationPlayState = "paused";
+        }
+    </script>
+</body>
+</html>
