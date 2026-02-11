@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
     <title>SoundWave Player</title>
     <style>
         body {
@@ -20,8 +21,8 @@
         }
 
         .disco-container {
-            width: 200px;
-            height: 200px;
+            width: 220px;
+            height: 220px;
             border-radius: 50%;
             background: linear-gradient(135deg, #8E44AD, #3498db);
             box-shadow: 0 0 30px rgba(142, 68, 173, 0.4);
@@ -43,20 +44,18 @@
             width: 100%;
             max-width: 350px;
             border-radius: 50px;
+            outline: none;
         }
 
-        /* Botón superpuesto para iniciar (necesario en móviles) */
-        #btn-start {
-            padding: 15px 40px;
-            background-color: #1DB954;
-            color: white;
-            border: none;
-            border-radius: 30px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
+        #error-log {
+            color: #ff5555;
+            font-size: 12px;
             margin-top: 20px;
-            display: none; /* Se muestra si es necesario */
+            max-width: 300px;
+            display: none;
+            background: rgba(255,0,0,0.1);
+            padding: 10px;
+            border-radius: 10px;
         }
 
         @keyframes pulse {
@@ -79,20 +78,25 @@
         Tu navegador no soporta audio.
     </audio>
     
-    <button id="btn-start">🎧 Escuchar Audio</button>
+    <div id="error-log"></div>
 
     <script>
         const player = document.getElementById('player');
         const visual = document.getElementById('visual');
         const titulo = document.getElementById('titulo');
-        const btnStart = document.getElementById('btn-start');
+        const errorLog = document.getElementById('error-log');
 
-        // Obtener parámetros de la URL (?track=...&msg=...)
         const params = new URLSearchParams(window.location.search);
         const driveLink = params.get('track');
         const mensaje = params.get('msg');
 
-        // 1. Poner Título
+        // Función para mostrar errores en pantalla
+        function mostrarError(txt) {
+            errorLog.style.display = 'block';
+            errorLog.innerText = "Error: " + txt;
+            titulo.innerText = "⚠️ No se pudo reproducir";
+        }
+
         if (mensaje) {
             titulo.innerText = decodeURIComponent(mensaje);
             document.title = decodeURIComponent(mensaje);
@@ -100,29 +104,43 @@
             titulo.innerText = "Mensaje de Audio";
         }
 
-        // 2. Extraer ID de Drive y Configurar Audio
         if (driveLink) {
-            // Regex mejorado para capturar ID de Drive
-            const regex = /(?:d\/|id=)([-a-zA-Z0-9_]+)/;
+            // Regex mejorado para capturar cualquier formato de ID de Drive
+            const regex = /[-\w]{25,}/;
             const match = driveLink.match(regex);
 
-            if (match && match[1]) {
-                const fileId = match[1];
-                // Enlace directo de descarga para streaming
-                const streamUrl = `https://docs.google.com/uc?export=download&id=${fileId}`;
+            if (match) {
+                const fileId = match[0];
+                console.log("ID Detectado:", fileId);
+                
+                // TRUCO 2: URL de streaming directa con confirmación
+                // A veces Google pide confirmación, esto ayuda a saltarla
+                const streamUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
                 
                 player.src = streamUrl;
-                
-                // Manejo de eventos visuales
+                player.load(); // Forzar carga
+
+                // Eventos de depuración
                 player.onplay = () => visual.classList.add('playing');
                 player.onpause = () => visual.classList.remove('playing');
-                player.onended = () => visual.classList.remove('playing');
+                
+                player.onerror = (e) => {
+                    const error = player.error;
+                    let errorMsg = "Desconocido";
+                    if (error.code === 1) errorMsg = "Abortado por usuario";
+                    if (error.code === 2) errorMsg = "Error de Red (Posible bloqueo de Drive)";
+                    if (error.code === 3) errorMsg = "Error de Decodificación";
+                    if (error.code === 4) errorMsg = "Formato no soportado (SRC no accesible)";
+                    
+                    console.error("Error de audio:", error);
+                    mostrarError(errorMsg + ". Asegúrate de que el archivo en Drive sea 'Público' (Cualquier persona con el enlace).");
+                };
 
             } else {
-                titulo.innerText = "Error: Link no válido";
+                mostrarError("Link de Drive no válido.");
             }
         } else {
-            titulo.innerText = "Escanea un código QR para escuchar";
+            titulo.innerText = "Esperando Audio...";
             player.style.display = 'none';
         }
     </script>
